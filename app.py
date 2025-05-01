@@ -13,35 +13,26 @@ def webhook():
         if not user_message:
             return jsonify({"fulfillmentText": "I didn’t catch that. Can you rephrase it?"})
 
-        # 🔍 Debug the environment variable before using it
-        print("🔍 ENV CHECK — OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
+        # Check OpenAI API Key from Environment
+        api_key = os.getenv("OPENAI_API_KEY")
+        client = OpenAI(api_key=api_key)
 
-        # Use the OpenAI client
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-        # ChatGPT behavior
-        messages = [
-            {
-                "role": "system",
-                "content": "You're a helpful assistant for business owners. Keep answers short and smart."
-            },
-            {
-                "role": "user",
-                "content": user_message
-            }
-        ]
-
+        # Send to OpenAI GPT-4
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=messages
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": user_message}
+            ]
         )
 
         bot_reply = response.choices[0].message.content.strip()
+
         return jsonify({"fulfillmentText": bot_reply})
 
     except Exception as e:
         print("❌ Webhook Error:", str(e))
-        return jsonify({"fulfillmentText": "Oops! Something went wrong on my end. Please try again later."})
+        return jsonify({"fulfillmentText": "Oops! Something went wrong. Please try again later."})
 
 if __name__ == "__main__":
     app.run()
