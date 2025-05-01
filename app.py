@@ -2,9 +2,6 @@ import os
 from flask import Flask, request, jsonify
 from openai import OpenAI
 
-# Load OpenAI API key from environment (set in Render)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
@@ -16,11 +13,17 @@ def webhook():
         if not user_message:
             return jsonify({"fulfillmentText": "I didn’t catch that. Can you rephrase it?"})
 
-        # Customize GPT-4 behavior with system message
+        # 🔍 Debug the environment variable before using it
+        print("🔍 ENV CHECK — OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
+
+        # Use the OpenAI client
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        # ChatGPT behavior
         messages = [
             {
                 "role": "system",
-                "content": "You're a helpful AI assistant that answers only about halal lead generation, Facebook ads, automation, guarantees, and services. Be persuasive and concise."
+                "content": "You're a helpful assistant for business owners. Keep answers short and smart."
             },
             {
                 "role": "user",
@@ -34,12 +37,11 @@ def webhook():
         )
 
         bot_reply = response.choices[0].message.content.strip()
-
         return jsonify({"fulfillmentText": bot_reply})
 
     except Exception as e:
         print("❌ Webhook Error:", str(e))
-        return jsonify({"fulfillmentText": "Oops! I ran into a glitch. Give me a sec to fix it."})
+        return jsonify({"fulfillmentText": "Oops! Something went wrong on my end. Please try again later."})
 
 if __name__ == "__main__":
     app.run()
