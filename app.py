@@ -2,8 +2,8 @@ import os
 from flask import Flask, request, jsonify
 from openai import OpenAI
 
-# Create the OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", "sk-REPLACE_ME_WITH_YOUR_KEY"))
+# Load OpenAI API key from environment (set in Render)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
 
@@ -14,15 +14,23 @@ def webhook():
         user_message = req.get("queryResult", {}).get("queryText", "")
 
         if not user_message:
-            return jsonify({"fulfillmentText": "I didn’t catch that. Can you rephrase?"})
+            return jsonify({"fulfillmentText": "I didn’t catch that. Can you rephrase it?"})
 
-        # Call the new OpenAI client
+        # Customize GPT-4 behavior with system message
+        messages = [
+            {
+                "role": "system",
+                "content": "You're a helpful AI assistant that answers only about halal lead generation, Facebook ads, automation, guarantees, and services. Be persuasive and concise."
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ]
+
         response = client.chat.completions.create(
-            model="gpt-4",  # You can change to "gpt-3.5-turbo" if needed
-            messages=[
-                {"role": "system", "content": "You are a helpful chatbot that helps small business owners grow."},
-                {"role": "user", "content": user_message}
-            ]
+            model="gpt-4",
+            messages=messages
         )
 
         bot_reply = response.choices[0].message.content.strip()
@@ -30,8 +38,8 @@ def webhook():
         return jsonify({"fulfillmentText": bot_reply})
 
     except Exception as e:
-        print("⚠️ Webhook Error:", str(e))
-        return jsonify({"fulfillmentText": "Something went wrong on my end. Hang tight while I fix it!"})
+        print("❌ Webhook Error:", str(e))
+        return jsonify({"fulfillmentText": "Oops! I ran into a glitch. Give me a sec to fix it."})
 
 if __name__ == "__main__":
     app.run()
