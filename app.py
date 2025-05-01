@@ -1,40 +1,37 @@
 import os
 from flask import Flask, request, jsonify
-import openai
+from openai import OpenAI
 
-# Set up the Flask app
+# Create the OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", "sk-REPLACE_ME_WITH_YOUR_KEY"))
+
 app = Flask(__name__)
-
-# Get your OpenAI API key from environment variable (or hardcode it if testing only)
-openai.api_key = os.getenv("OPENAI_API_KEY", "sk-REPLACE_ME_WITH_YOUR_KEY")
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    req = request.get_json(silent=True)
-    user_message = req.get("queryResult", {}).get("queryText", "")
-
-    if not user_message:
-        return jsonify({"fulfillmentText": "I didn’t catch that. Can you try rephrasing?"})
-
     try:
-        # Send message to OpenAI GPT-4
-        completion = openai.ChatCompletion.create(
-            model="gpt-4",
+        req = request.get_json(silent=True)
+        user_message = req.get("queryResult", {}).get("queryText", "")
+
+        if not user_message:
+            return jsonify({"fulfillmentText": "I didn’t catch that. Can you rephrase?"})
+
+        # Call the new OpenAI client
+        response = client.chat.completions.create(
+            model="gpt-4",  # You can change to "gpt-3.5-turbo" if needed
             messages=[
-                {"role": "system", "content": "You are a helpful assistant for a digital marketer helping halal businesses get more leads."},
+                {"role": "system", "content": "You are a helpful chatbot that helps small business owners grow."},
                 {"role": "user", "content": user_message}
             ]
         )
 
-        # Extract the response from GPT-4
-        reply = completion.choices[0].message["content"].strip()
+        bot_reply = response.choices[0].message.content.strip()
 
-        return jsonify({"fulfillmentText": reply})
+        return jsonify({"fulfillmentText": bot_reply})
 
     except Exception as e:
-        print("Error:", e)
-        return jsonify({"fulfillmentText": "Something went wrong. Please try again later."})
+        print("⚠️ Webhook Error:", str(e))
+        return jsonify({"fulfillmentText": "Something went wrong on my end. Hang tight while I fix it!"})
 
-# Run the Flask app
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
